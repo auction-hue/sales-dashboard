@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>売上ダッシュボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --page:      #f5f2ec;
+    --surface:   #ffffff;
+    --surface-2: #efece4;
+    --ink:       #211c17;
+    --ink-2:     #6c6259;
+    --ink-mute:  #99907f;
+    --border:    rgba(33,28,23,0.10);
+    --grid:      #e7e2d8;
+    --accent:    #2f6d5e;
+    --accent-ink:#ffffff;
+    --series:    #2a78d6;
+    --warn:      #b3452f;
+
+    --cat-food: #2a78d6;
+    --cat-gift: #eb6834;
+    --cat-goods:#1baf7a;
+    --cat-sub:  #eda100;
+    --cat-other:#8a8578;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page:      #16140f;
+      --surface:   #211e18;
+      --surface-2: #2a271f;
+      --ink:       #f3efe6;
+      --ink-2:     #c7bfae;
+      --ink-mute:  #8f887a;
+      --border:    rgba(255,255,255,0.10);
+      --grid:      #343026;
+      --accent:    #57a68d;
+      --accent-ink:#0f1410;
+      --series:    #3987e5;
+      --warn:      #e0755a;
+
+      --cat-food: #3987e5;
+      --cat-gift: #d95926;
+      --cat-goods:#199e70;
+      --cat-sub:  #c98500;
+      --cat-other:#9b968a;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page:      #16140f;
+    --surface:   #211e18;
+    --surface-2: #2a271f;
+    --ink:       #f3efe6;
+    --ink-2:     #c7bfae;
+    --ink-mute:  #8f887a;
+    --border:    rgba(255,255,255,0.10);
+    --grid:      #343026;
+    --accent:    #57a68d;
+    --accent-ink:#0f1410;
+    --series:    #3987e5;
+    --warn:      #e0755a;
+
+    --cat-food: #3987e5;
+    --cat-gift: #d95926;
+    --cat-goods:#199e70;
+    --cat-sub:  #c98500;
+    --cat-other:#9b968a;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--page);
+    color:var(--ink);
+    font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+    padding:32px clamp(16px,4vw,48px) 56px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:16px;flex-wrap:wrap;
+    padding-bottom:20px;margin-bottom:20px;
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:10px;
+    background:var(--accent);color:var(--accent-ink);
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  h1{
+    font-family:"Fraunces",Georgia,serif;
+    font-weight:600;font-size:25px;letter-spacing:-0.01em;
+    margin:0;text-wrap:balance;
+  }
+  .sub{color:var(--ink-2);font-size:13.5px;margin-top:2px;}
+  .period{text-align:right;font-size:13px;color:var(--ink-mute);}
+  .period strong{color:var(--ink-2);font-weight:600;}
+
+  /* ---- Data source bar ---- */
+  .source-bar{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .source-bar .flabel{font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.02em;}
+  .source-files{font-size:12px;color:var(--ink-mute);}
+  .server-dot{width:8px;height:8px;border-radius:50%;background:var(--ink-mute);flex:none;}
+  .server-dot.ok{background:var(--accent);}
+  .server-dot.err{background:var(--warn);}
+  .server-status{font-size:12px;color:var(--ink-mute);display:flex;align-items:center;gap:6px;}
+
+  .error-banner{
+    background:var(--surface);border:1px solid var(--warn);border-radius:14px;
+    padding:20px 22px;margin-bottom:16px;color:var(--ink);
+  }
+  .error-banner h2{margin:0 0 8px;font-size:15px;color:var(--warn);}
+  .error-banner code{
+    background:var(--surface-2);border-radius:6px;padding:2px 6px;font-size:12.5px;
+  }
+  .error-banner ol{margin:10px 0 0;padding-left:20px;font-size:13px;line-height:1.7;}
+
+  /* ---- Drop zone ---- */
+  .dropzone{
+    border:2px dashed var(--border);border-radius:14px;
+    padding:20px;text-align:center;color:var(--ink-mute);font-size:13px;
+    margin-bottom:10px;cursor:pointer;background:var(--surface);
+    transition:border-color .15s, background .15s, color .15s;
+  }
+  .dropzone:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .dropzone.dragover{border-color:var(--accent);color:var(--accent);background:var(--surface-2);}
+  .dropzone .dz-icon{margin-bottom:6px;color:var(--ink-mute);}
+  .dropzone.dragover .dz-icon{color:var(--accent);}
+  .dropzone strong{color:var(--ink);}
+  .dropzone .dz-hint{margin-top:4px;font-size:11.5px;}
+  .dropzone input[type=file]{display:none;}
+  .upload-status{font-size:12.5px;margin:-2px 0 14px 2px;min-height:1.3em;}
+  .upload-status.ok{color:var(--accent);}
+  .upload-status.err{color:var(--warn);}
+
+  /* ---- Filter bar ---- */
+  .filters{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:16px 20px;margin-bottom:16px;
+    display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end;
+  }
+  .filter-group{display:flex;flex-direction:column;gap:8px;}
+  .filter-group .flabel{font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.02em;}
+  .date-inputs{display:flex;align-items:center;gap:8px;}
+  .date-inputs input[type=date]{
+    font-family:"Inter",system-ui,sans-serif;font-size:13px;color:var(--ink);
+    background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+    padding:6px 8px;font-variant-numeric:tabular-nums;
+  }
+  .date-inputs span{color:var(--ink-mute);font-size:12px;}
+  .preset-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .preset-btn{
+    font-family:"Inter",system-ui,sans-serif;font-size:12px;font-weight:600;
+    color:var(--ink-2);background:var(--surface-2);border:1px solid var(--border);
+    border-radius:20px;padding:5px 12px;cursor:pointer;
+  }
+  .preset-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .preset-btn.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+  .cat-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .cat-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:600;color:var(--ink-2);
+    background:var(--surface-2);border:1px solid var(--border);border-radius:20px;
+    padding:5px 12px 5px 8px;cursor:pointer;user-select:none;
+  }
+  .cat-chip .dot{width:9px;height:9px;border-radius:50%;flex:none;opacity:.35;}
+  .cat-chip.active{border-color:var(--chip-color,var(--accent));color:var(--ink);background:var(--surface);}
+  .cat-chip.active .dot{opacity:1;background:var(--chip-color,var(--accent));}
+  .cat-chip input{display:none;}
+  .filters .reset-btn{
+    margin-left:auto;font-family:"Inter",system-ui,sans-serif;font-size:12.5px;font-weight:600;
+    color:var(--ink-mute);background:none;border:1px solid var(--border);border-radius:8px;
+    padding:7px 12px;cursor:pointer;
+  }
+  .filters .reset-btn:hover{color:var(--ink);border-color:var(--ink-mute);}
+  .result-note{font-size:12px;color:var(--ink-mute);margin:-6px 0 14px 2px;}
+
+  .kpi-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;margin-bottom:20px;}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;}
+  .kpi-label{font-size:12.5px;color:var(--ink-2);font-weight:600;letter-spacing:.02em;}
+  .kpi-value{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:30px;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;}
+  .kpi.main .kpi-value{font-size:34px;color:var(--accent);}
+  .kpi-note{font-size:12.5px;margin-top:6px;color:var(--ink-mute);}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px 16px;margin-bottom:16px;}
+  .card h2{font-size:14.5px;font-weight:700;margin:0 0 2px;}
+  .card .hint{font-size:12px;color:var(--ink-mute);margin-bottom:14px;}
+  .empty-note{font-size:13px;color:var(--ink-mute);padding:24px 0;text-align:center;}
+
+  svg text{font-family:"Inter",system-ui,sans-serif;}
+  .tick{fill:var(--ink-mute);font-size:10.5px;}
+  .gridline{stroke:var(--grid);stroke-width:1;}
+  .val-label{fill:var(--ink);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;}
+
+  .bar-row{display:flex;align-items:center;gap:10px;padding:7px 0;}
+  .bar-rank{width:20px;flex:none;font-size:12px;color:var(--ink-mute);font-variant-numeric:tabular-nums;text-align:right;}
+  .bar-label{width:150px;flex:none;font-size:12.5px;color:var(--ink-2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bar-track{flex:1;position:relative;height:20px;}
+  .bar-fill{position:absolute;left:0;top:2px;bottom:2px;border-radius:4px;background:var(--series);cursor:pointer;}
+  .bar-val{width:88px;flex:none;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right;}
+
+  #tooltip{
+    position:fixed;pointer-events:none;z-index:50;
+    background:var(--ink);color:var(--page);
+    font-size:12px;padding:6px 10px;border-radius:8px;
+    opacity:0;transform:translate(-50%,-130%);transition:opacity .1s;
+    white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+  #tooltip.show{opacity:1;}
+
+  footer{margin-top:22px;font-size:11.5px;color:var(--ink-mute);text-align:center;}
+
+  @media (max-width:640px){
+    .kpi-row{grid-template-columns:1fr;}
+    .bar-label{width:96px;font-size:11.5px;}
+    .filters{flex-direction:column;align-items:stretch;}
+    .filters .reset-btn{margin-left:0;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 9h13a3 3 0 0 1 0 6h-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 9v6a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7 5.5c0 1-1 1-1 2M10.5 5.5c0 1-1 1-1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <h1>売上ダッシュボード</h1>
+        <div class="sub" id="source-sub">読み込み中...</div>
+      </div>
+    </div>
+    <div class="period">データの期間<br><strong id="period-label">—</strong></div>
+  </header>
+
+  <div class="source-bar">
+    <span class="server-status"><span class="server-dot" id="server-dot"></span><span id="server-status-text">サーバーに接続中...</span></span>
+    <span class="source-files" id="source-files"></span>
+  </div>
+
+  <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="CSVファイルをアップロード">
+    <div class="dz-icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 15V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div><strong>CSVをドラッグ&ドロップ</strong>、またはクリックして選択</div>
+    <div class="dz-hint">列: 日付,商品名,カテゴリ,数量,売上金額 を含む同形式のCSV(自動で「売上データ*.csv」として保存されます)</div>
+    <input type="file" id="file-input" accept=".csv,text/csv">
+  </div>
+  <div class="upload-status" id="upload-status"></div>
+
+  <div id="error-area"></div>
+
+  <div id="dashboard-area" style="display:none;">
+    <div class="filters">
+      <div class="filter-group">
+        <div class="flabel">期間</div>
+        <div class="preset-row" id="preset-row"></div>
+        <div class="date-inputs">
+          <input type="date" id="date-from">
+          <span>〜</span>
+          <input type="date" id="date-to">
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="flabel">カテゴリ</div>
+        <div class="cat-row" id="cat-row"></div>
+      </div>
+      <button class="reset-btn" id="reset-btn">条件をリセット</button>
+    </div>
+    <div class="result-note" id="result-note"></div>
+
+    <div class="kpi-row">
+      <div class="kpi main">
+        <div class="kpi-label">総売上金額</div>
+        <div class="kpi-value" id="kpi-total">¥0</div>
+        <div class="kpi-note" id="kpi-total-note">&nbsp;</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">総取引件数</div>
+        <div class="kpi-value" id="kpi-orders">0<span style="font-size:15px;font-weight:500;"> 件</span></div>
+        <div class="kpi-note" id="kpi-qty-note">&nbsp;</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">平均客単価</div>
+        <div class="kpi-value" id="kpi-avg">¥0</div>
+        <div class="kpi-note">売上 ÷ 取引件数</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>月別売上推移</h2>
+      <div class="hint" id="month-hint">&nbsp;</div>
+      <div id="chart-month-wrap"><svg id="chart-month" viewBox="0 0 720 220" width="100%" height="220"></svg></div>
+    </div>
+
+    <div class="card">
+      <h2>商品別売上ランキング</h2>
+      <div class="hint" id="product-hint">&nbsp;</div>
+      <div id="chart-product"></div>
+    </div>
+  </div>
+
+  <footer id="footer-note">&nbsp;</footer>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ================= サーバー連携 =================
+const CATEGORY_COLOR_VARS = {"食品":"--cat-food","ギフト":"--cat-gift","雑貨":"--cat-goods","サブスク":"--cat-sub"};
+const FALLBACK_COLOR_VAR = "--cat-other";
+
+let rows = [];
+let CATS = [];               // [{name, colorVar}]
+let activeCats = new Set();
+let DATA_MIN = null, DATA_MAX = null;
+let PRESETS = [];
+let sourceFiles = [];
+
+const tooltip = document.getElementById("tooltip");
+const sourceFilesEl = document.getElementById("source-files");
+const serverDot = document.getElementById("server-dot");
+const serverStatusText = document.getElementById("server-status-text");
+const errorArea = document.getElementById("error-area");
+const dashboardArea = document.getElementById("dashboard-area");
+const presetRow = document.getElementById("preset-row");
+const dateFrom = document.getElementById("date-from");
+const dateTo = document.getElementById("date-to");
+const catRow = document.getElementById("cat-row");
+const resetBtn = document.getElementById("reset-btn");
+
+function fmtYen(n){ return "¥" + Math.round(n).toLocaleString("ja-JP"); }
+function fmtDateJa(iso){
+  const [y,m,d] = iso.split("-");
+  return `${y}年${+m}月${+d}日`;
+}
+
+function showTip(evt, text){
+  tooltip.textContent = text;
+  tooltip.style.left = evt.clientX + "px";
+  tooltip.style.top = evt.clientY + "px";
+  tooltip.classList.add("show");
+}
+function hideTip(){ tooltip.classList.remove("show"); }
+
+function showConnectionError(detail){
+  serverDot.className = "server-dot err";
+  serverStatusText.textContent = "サーバーに接続できません";
+  dashboardArea.style.display = "none";
+  errorArea.innerHTML = `
+    <div class="error-banner">
+      <h2>サーバーに接続できません</h2>
+      <div>このダッシュボードはCSVを動的に読み込むため、Pythonサーバー経由で開く必要があります。</div>
+      <ol>
+        <li>このフォルダで <code>python server.py</code> を実行する</li>
+        <li>ブラウザで <code>http://localhost:8000/</code> を開く(このファイルを直接ダブルクリックでは動作しません)</li>
+      </ol>
+      <div style="margin-top:10px;font-size:12px;color:var(--ink-mute);">詳細: ${detail || ""}</div>
+    </div>`;
+}
+
+async function fetchJSON(url){
+  const res = await fetch(url, {cache:"no-store"});
+  if(!res.ok){
+    const body = await res.json().catch(()=>({}));
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function init(){
+  serverStatusText.textContent = "読み込み中...";
+  try{
+    const data = await fetchJSON("/api/data?file=__all__");
+    rows = data.rows;
+    sourceFiles = data.sources || [];
+  }catch(e){
+    showConnectionError(e.message);
+    return;
+  }
+
+  serverDot.className = "server-dot ok";
+  serverStatusText.textContent = "サーバー接続 OK";
+  sourceFilesEl.textContent = sourceFiles.length
+    ? `読み込み元: ${sourceFiles.join(", ")}`
+    : "";
+
+  dashboardArea.style.display = "";
+  errorArea.innerHTML = "";
+
+  setupForData();
+  render();
+}
+
+// ================= データに応じたUI再構築 =================
+function setupForData(){
+  const dates = rows.map(r=>r.d).sort();
+  DATA_MIN = dates[0];
+  DATA_MAX = dates[dates.length-1];
+
+  document.getElementById("source-sub").textContent = `${sourceFiles.length}件のCSVを合算 ・ 全${rows.length}件の取引`;
+  document.getElementById("period-label").textContent = `${fmtDateJa(DATA_MIN)} 〜 ${fmtDateJa(DATA_MAX)}`;
+
+  // カテゴリ(出現順に固定色を割り当て、未知のカテゴリはフォールバック色)
+  const catNames = [...new Set(rows.map(r=>r.c))];
+  const usedFallbackNames = catNames.filter(c=>!CATEGORY_COLOR_VARS[c]);
+  CATS = catNames.map(name=>({
+    name,
+    colorVar: CATEGORY_COLOR_VARS[name] || FALLBACK_COLOR_VAR
+  }));
+  activeCats = new Set(catNames);
+
+  catRow.innerHTML = "";
+  CATS.forEach(c=>{
+    const label = document.createElement("label");
+    label.className = "cat-chip active";
+    label.style.setProperty("--chip-color", `var(${c.colorVar})`);
+    label.innerHTML = `<span class="dot"></span>${c.name}`;
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = true;
+    input.addEventListener("change", ()=>{
+      if(input.checked){ activeCats.add(c.name); label.classList.add("active"); }
+      else{ activeCats.delete(c.name); label.classList.remove("active"); }
+      render();
+    });
+    label.prepend(input);
+    catRow.appendChild(label);
+  });
+
+  // 期間プリセット: 全期間 + データに含まれる月ごと(複数年をまたぐ場合は年も表示)
+  const months = [...new Set(dates.map(d=>d.slice(0,7)))].sort();
+  const multiYear = new Set(months.map(ym=>ym.slice(0,4))).size > 1;
+  PRESETS = [{label:"全期間", from:DATA_MIN, to:DATA_MAX}];
+  months.forEach(ym=>{
+    const [y,m] = ym.split("-");
+    const lastDay = new Date(+y, +m, 0).getDate();
+    const from = `${ym}-01`;
+    const to = `${ym}-${String(lastDay).padStart(2,"0")}`;
+    PRESETS.push({
+      label: multiYear ? `${y}年${+m}月` : `${+m}月`,
+      from: from < DATA_MIN ? DATA_MIN : from,
+      to: to > DATA_MAX ? DATA_MAX : to
+    });
+  });
+  presetRow.innerHTML = "";
+  PRESETS.forEach(p=>{
+    const btn = document.createElement("button");
+    btn.className = "preset-btn";
+    btn.textContent = p.label;
+    btn.addEventListener("click", ()=>{
+      dateFrom.value = p.from;
+      dateTo.value = p.to;
+      render();
+    });
+    presetRow.appendChild(btn);
+  });
+
+  dateFrom.min = DATA_MIN; dateFrom.max = DATA_MAX; dateFrom.value = DATA_MIN;
+  dateTo.min = DATA_MIN; dateTo.max = DATA_MAX; dateTo.value = DATA_MAX;
+}
+
+dateFrom.addEventListener("change", ()=>{ if(dateFrom.value > dateTo.value) dateTo.value = dateFrom.value; render(); });
+dateTo.addEventListener("change", ()=>{ if(dateTo.value < dateFrom.value) dateFrom.value = dateTo.value; render(); });
+
+resetBtn.addEventListener("click", ()=>{
+  dateFrom.value = DATA_MIN;
+  dateTo.value = DATA_MAX;
+  activeCats = new Set(CATS.map(c=>c.name));
+  catRow.querySelectorAll("input").forEach(i=>{ i.checked = true; i.closest(".cat-chip").classList.add("active"); });
+  render();
+});
+
+function updatePresetHighlight(){
+  const from = dateFrom.value, to = dateTo.value;
+  [...presetRow.children].forEach((btn,i)=>{
+    const p = PRESETS[i];
+    btn.classList.toggle("active", p.from===from && p.to===to);
+  });
+}
+
+// ================= 集計・描画 =================
+function render(){
+  updatePresetHighlight();
+  const from = dateFrom.value, to = dateTo.value;
+  const filtered = rows.filter(r => r.d >= from && r.d <= to && activeCats.has(r.c));
+
+  const resultNote = document.getElementById("result-note");
+  resultNote.textContent = `${fmtDateJa(from)} 〜 ${fmtDateJa(to)} ・ ${activeCats.size}/${CATS.length}カテゴリ選択中 ・ ${filtered.length}件該当`;
+
+  const total = filtered.reduce((s,r)=>s+r.s,0);
+  const orders = filtered.length;
+  const avg = orders ? total/orders : 0;
+  document.getElementById("kpi-total").textContent = fmtYen(total);
+  document.getElementById("kpi-orders").innerHTML = orders.toLocaleString("ja-JP") + '<span style="font-size:15px;font-weight:500;"> 件</span>';
+  document.getElementById("kpi-avg").textContent = fmtYen(avg);
+  const qty = filtered.reduce((s,r)=>s+r.q,0);
+  document.getElementById("kpi-qty-note").textContent = `総数量 ${qty.toLocaleString("ja-JP")}点`;
+  document.getElementById("kpi-total-note").textContent = `${fmtDateJa(from)}〜${fmtDateJa(to)}`;
+
+  const monthMap = new Map();
+  filtered.forEach(r=>{
+    const ym = r.d.slice(0,7);
+    if(!monthMap.has(ym)) monthMap.set(ym, {sales:0, orders:0});
+    const m = monthMap.get(ym);
+    m.sales += r.s; m.orders += 1;
+  });
+  const months = [...monthMap.keys()].sort().map(ym=>({
+    label: `${+ym.slice(5,7)}月`, sales: monthMap.get(ym).sales, orders: monthMap.get(ym).orders
+  }));
+  document.getElementById("month-hint").textContent = months.length
+    ? `${fmtDateJa(from)} 〜 ${fmtDateJa(to)}`
+    : "該当データがありません";
+  renderMonthChart(months);
+
+  const prodMap = new Map();
+  filtered.forEach(r=>{
+    if(!prodMap.has(r.p)) prodMap.set(r.p, 0);
+    prodMap.set(r.p, prodMap.get(r.p)+r.s);
+  });
+  const products = [...prodMap.entries()].map(([name,sales])=>({name,sales})).sort((a,b)=>b.sales-a.sales);
+  document.getElementById("product-hint").textContent = products.length
+    ? `全${products.length}商品・売上高降順`
+    : "該当データがありません";
+  renderProductChart(products);
+
+  document.getElementById("footer-note").textContent =
+    `${sourceFiles.join(", ")}(計${rows.length}レコード, ${DATA_MIN}〜${DATA_MAX})を集計 ・ 上部の期間/カテゴリで絞り込み可能`;
+}
+
+function renderMonthChart(months){
+  const svg = document.getElementById("chart-month");
+  const wrap = document.getElementById("chart-month-wrap");
+  if(!months.length){
+    svg.style.display = "none";
+    if(!wrap.querySelector(".empty-note")){
+      const p = document.createElement("div"); p.className="empty-note"; p.textContent="条件に一致する取引がありません";
+      wrap.appendChild(p);
+    }
+    return;
+  }
+  svg.style.display = "";
+  const existingEmpty = wrap.querySelector(".empty-note");
+  if(existingEmpty) existingEmpty.remove();
+
+  const W=720,H=220, padL=52, padR=16, padT=14, padB=28;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const maxVal = Math.max(...months.map(m=>m.sales), 1);
+  const yMax = Math.ceil(maxVal/100000)*100000 || 100000;
+  const n = months.length;
+  const barW = Math.min(96, plotW/n*0.55);
+  const gap = (plotW - barW*n)/(n+1);
+
+  let svgHTML = "";
+  const steps=4;
+  for(let i=0;i<=steps;i++){
+    const val = yMax/steps*i;
+    const y = padT + plotH - (val/yMax)*plotH;
+    svgHTML += `<line class="gridline" x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}"/>`;
+    svgHTML += `<text class="tick" x="${padL-10}" y="${y+3}" text-anchor="end">${Math.round(val/1000)}k</text>`;
+  }
+
+  months.forEach((m,i)=>{
+    const x = padL + gap + i*(barW+gap);
+    const h = (m.sales/yMax)*plotH;
+    const y = padT + plotH - h;
+    svgHTML += `<rect class="seg" data-label="${m.label}(${m.orders}件)" data-val="${m.sales}" x="${x}" y="${y}" width="${barW}" height="${Math.max(h,0)}" rx="4" fill="var(--series)" style="cursor:pointer"/>`;
+    svgHTML += `<text class="val-label" x="${x+barW/2}" y="${Math.max(y-8,padT+10)}" text-anchor="middle">${fmtYen(m.sales)}</text>`;
+    svgHTML += `<text class="tick" x="${x+barW/2}" y="${padT+plotH+20}" text-anchor="middle" font-size="12" fill="var(--ink-2)">${m.label}</text>`;
+  });
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = svgHTML;
+
+  svg.querySelectorAll(".seg").forEach(el=>{
+    el.addEventListener("mousemove", e=>showTip(e, `${el.dataset.label}: ${fmtYen(+el.dataset.val)}`));
+    el.addEventListener("mouseleave", hideTip);
+  });
+}
+
+function renderProductChart(products){
+  const container = document.getElementById("chart-product");
+  container.innerHTML = "";
+  if(!products.length){
+    const p = document.createElement("div"); p.className="empty-note"; p.textContent="条件に一致する取引がありません";
+    container.appendChild(p);
+    return;
+  }
+  const max = Math.max(...products.map(d=>d.sales));
+  products.forEach((d,i)=>{
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    const pct = (d.sales/max*100).toFixed(1);
+    row.innerHTML = `
+      <div class="bar-rank">${i+1}</div>
+      <div class="bar-label" title="${d.name}">${d.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%" data-label="${d.name}" data-val="${d.sales}"></div></div>
+      <div class="bar-val">${fmtYen(d.sales)}</div>
+    `;
+    container.appendChild(row);
+  });
+  container.querySelectorAll(".bar-fill").forEach(el=>{
+    el.addEventListener("mousemove", e=>showTip(e, `${el.dataset.label}: ${fmtYen(+el.dataset.val)}`));
+    el.addEventListener("mouseleave", hideTip);
+  });
+}
+
+// ================= CSVアップロード(ドラッグ&ドロップ) =================
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("file-input");
+const uploadStatus = document.getElementById("upload-status");
+
+function setUploadStatus(text, cls){
+  uploadStatus.textContent = text;
+  uploadStatus.className = "upload-status" + (cls ? " " + cls : "");
+}
+
+dropzone.addEventListener("click", ()=>fileInput.click());
+dropzone.addEventListener("keydown", e=>{
+  if(e.key==="Enter" || e.key===" "){ e.preventDefault(); fileInput.click(); }
+});
+
+["dragenter","dragover"].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{
+    e.preventDefault();
+    dropzone.classList.add("dragover");
+  });
+});
+["dragleave","drop"].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+  });
+});
+dropzone.addEventListener("drop", e=>{
+  const files = e.dataTransfer.files;
+  if(files && files.length) handleUpload(files[0]);
+});
+fileInput.addEventListener("change", ()=>{
+  if(fileInput.files.length) handleUpload(fileInput.files[0]);
+  fileInput.value = "";
+});
+
+async function handleUpload(file){
+  if(!/\.csv$/i.test(file.name)){
+    setUploadStatus(`"${file.name}" はCSVファイルではありません`, "err");
+    return;
+  }
+  if(file.size > 20*1024*1024){
+    setUploadStatus(`"${file.name}" はサイズが大きすぎます(上限20MB)`, "err");
+    return;
+  }
+  setUploadStatus(`アップロード中: ${file.name} ...`, "");
+  try{
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "X-Filename": encodeURIComponent(file.name)
+      },
+      body: file
+    });
+    const body = await res.json().catch(()=>({}));
+    if(!res.ok){
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    setUploadStatus(`追加しました: ${body.filename}(${body.count}件, ${fmtDateJa(body.dateMin)}〜${fmtDateJa(body.dateMax)})`, "ok");
+    await init();
+  }catch(e){
+    setUploadStatus(`アップロード失敗: ${e.message}`, "err");
+  }
+}
+
+init();
+</script>
+</body>
+</html>
